@@ -1,0 +1,59 @@
+name: Angular Build with Public Key Injection and Docker
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      # Install Angular dependencies
+      - name: Install dependencies
+        run: |
+          npm install -g @angular/cli
+          npm install
+
+      # Inject the public key into environment files
+      - name: Inject Public Key into Environment Files
+        run: |
+          # Replace the placeholder with the actual public key in environment files
+          echo "Injecting Public Key into environment files..."
+          sed -i 's|__PUBLIC_KEY__|${{ secrets.PUBLIC_KEY }}|g' src/environments/environment.ts
+          sed -i 's|__PUBLIC_KEY__|${{ secrets.PUBLIC_KEY }}|g' src/environments/environment.prod.ts
+
+      # Build the Angular project (optional if needed before Docker build)
+      - name: Build Angular Project
+        run: |
+          ng build --configuration=production
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t my-angular-app .
+
+      # Optionally, push the Docker image to Docker Hub
+      - name: Push Docker image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker tag my-angular-app $DOCKER_USERNAME/my-angular-app:latest
+          docker push $DOCKER_USERNAME/my-angular-app:latest
+
+      # Optionally, deploy the Docker image to a cloud service (e.g., AWS ECS, Kubernetes, etc.)
+      # - name: Deploy to AWS ECS (example)
+      #   run: aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
